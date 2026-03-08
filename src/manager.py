@@ -1,14 +1,75 @@
-from fastapi import WebSocket
-from typing import List
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Dict
 
+
+router = APIRouter()
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        # Хранение активных соединений в виде {chat_id: {user_id: WebSocket}}
+        self.active_connections: Dict[int, Dict[int, WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, chat_id: int, user_id: int):
+        """
+        Устанавливает соединение с пользователем.
+        websocket.accept() — подтверждает подключение.
+        """
         await websocket.accept()
-        self.active_connections.append(websocket)
+        if chat_id not in self.active_connections:
+            self.active_connections[chat_id] = {}
+        self.active_connections[chat_id][user_id] = websocket
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, chat_id: int, user_id: int):
+        """
+        Закрывает соединение и удаляет его из списка активных подключений.
+        Если в комнате больше нет пользователей, удаляет комнату.
+        """
+        if chat_id in self.active_connections and user_id in self.active_connections[chat_id]:
+            del self.active_connections[chat_id][user_id]
+            if not self.active_connections[chat_id]:
+                del self.active_connections[chat_id]
+
+    async def broadcast_typing(self, chat_id: int, sender_id: int):
+        """
+        Рассылает сообщение всем пользователям в комнате.
+        """
+        if chat_id in self.active_connections:
+            for user_id, connection in self.active_connections[chat_id].items():
+                typer = {
+                    "sender_id": sender_id
+                }
+                await connection.send_json(typer)
+
+    async def broadcast_message(self, message: str, chat_id: int, sender_id: int):
+        """
+        Рассылает сообщение всем пользователям в комнате.
+        """
+        if chat_id in self.active_connections:
+            for user_id, connection in self.active_connections[chat_id].items():
+                new_message = {
+                    "text": message,
+                    "sender_id": sender_id
+                }
+                await connection.send_json(new_message)
+
+
+manager = ConnectionManager()
+
+@router.websocket("/{chat_id}/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, username: str):
+    await manager.connect(websocket, chat_id, user_id)
+    await manager.broadcast_message(f"{username} (ID: {user_id}) присоединился к чату.", chat_id, user_id)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+
+            if data["type"] == "message":
+                await manager.broadcast_message(data["text"], chat_id, user_id)
+
+            elif data["type"] == "typing":
+                await manager.broadcast_typing(chat_id, user_id)
+
+    except WebSocketDisconnect:
+        manager.disconnect(chat_id, user_id)
+        await manager.broadcast_message(f"{username} (ID: {user_id}) покинул чат.", chat_id, user_id)
