@@ -1,8 +1,9 @@
-from src.manager import ConnectionManager
 from src.db import engine, Base
 import src.models
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from src.handler.message_handler import router as messages_router
+from src.manager import router as websocket_router
 from src.handler.chatHandler import router as chat_router 
 
 
@@ -14,9 +15,10 @@ async def lifespan(app: FastAPI):
     yield
     await engine.dispose()
 
-manager = ConnectionManager()
-
 app = FastAPI(title="Messanger Service", version="1.0.0", lifespan=lifespan)
+
+app.include_router(messages_router)
+app.include_router(websocket_router)
 
 app.include_router(chat_router)
 
