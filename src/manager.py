@@ -1,6 +1,9 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict
-
+from src.repository.chatRepo import ChatRepository
+from src.service.message_service import add_message
+from .db import get_db
 
 router = APIRouter()
 
@@ -56,7 +59,13 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 @router.websocket("/{chat_id}/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, username: str):
+async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, username: str,db: AsyncSession = Depends(get_db)):
+    chat_repo = ChatRepository(db)
+    member = await chat_repo.get_member(chat_id, user_id)
+    if not member:
+        await websocket.close()
+        return
+
     await manager.connect(websocket, chat_id, user_id)
     await manager.broadcast_message(f"{username} (ID: {user_id}) присоединился к чату.", chat_id, user_id)
 
@@ -65,6 +74,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, u
             data = await websocket.receive_json()
 
             if data["type"] == "message":
+                await add_message(db, chat_id, data["text"], user_id)
                 await manager.broadcast_message(data["text"], chat_id, user_id)
 
             elif data["type"] == "typing":
