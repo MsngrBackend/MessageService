@@ -74,7 +74,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, u
             data = await websocket.receive_json()
 
             if data["type"] == "message":
-                await add_message(db, chat_id, user_id, data["text"])
+                await add_message(db, chat_id, data["text"], user_id)
                 await manager.broadcast_message(data["text"], chat_id, user_id)
 
             elif data["type"] == "typing":
