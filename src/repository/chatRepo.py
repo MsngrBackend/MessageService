@@ -8,7 +8,7 @@ class ChatRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_chats_by_user(self, user_id: int) -> list[Chat]:
+    async def get_chats_by_user(self, user_id: str) -> list[Chat]:
         result = await self.session.execute(
             select(Chat)
             .join(ChatMembers, Chat.id == ChatMembers.chat_id)
@@ -29,14 +29,14 @@ class ChatRepository:
         await self.session.refresh(chat)
         return chat
     
-    async def add_member(self, chat_id: int, user_id: int) -> ChatMembers:
+    async def add_member(self, chat_id: int, user_id: str) -> ChatMembers:
         member = ChatMembers(chat_id=chat_id, user_id=user_id)
         self.session.add(member)
         await self.session.flush()
         await self.session.refresh(member)
         return member
     
-    async def get_member(self, chat_id: int, user_id: int) -> ChatMembers | None:
+    async def get_member(self, chat_id: int, user_id: str) -> ChatMembers | None:
         result = await self.session.execute(
             select(ChatMembers)
             .where(ChatMembers.chat_id == chat_id)
@@ -44,7 +44,7 @@ class ChatRepository:
         )
         return result.scalar_one_or_none()
     
-    async def remove_member(self, chat_id: int, user_id: int) -> None:
+    async def remove_member(self, chat_id: int, user_id: str) -> None:
         await self.session.execute(
             delete(ChatMembers)
             .where(ChatMembers.chat_id == chat_id)

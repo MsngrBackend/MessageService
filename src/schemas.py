@@ -9,7 +9,7 @@ class RenameChatRequest(BaseModel):
 
 
 class AddMemberRequest(BaseModel):
-    user_id: int
+    user_id: str
 
 class ChatResponse(BaseModel):
     id: int
@@ -21,6 +21,6 @@ class ChatResponse(BaseModel):
 class MemberResponse(BaseModel):
     id: int
     chat_id: int
-    user_id: int
+    user_id: str
 
     model_config = {"from_attributes": True}

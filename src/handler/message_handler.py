@@ -13,7 +13,7 @@ router = APIRouter(
 async def create_message(
     chat_id: int,
     content: str,
-    sender_id: int,
+    sender_id: str,
     db: AsyncSession = Depends(get_db)
 ):
     message = await add_message(db, chat_id, content, sender_id)
