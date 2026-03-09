@@ -12,7 +12,7 @@ class ConnectionManager:
         # Хранение активных соединений в виде {chat_id: {user_id: WebSocket}}
         self.active_connections: Dict[int, Dict[int, WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket, chat_id: int, user_id: int):
+    async def connect(self, websocket: WebSocket, chat_id: int, user_id: str):
         """
         Устанавливает соединение с пользователем.
         websocket.accept() — подтверждает подключение.
@@ -22,7 +22,7 @@ class ConnectionManager:
             self.active_connections[chat_id] = {}
         self.active_connections[chat_id][user_id] = websocket
 
-    def disconnect(self, chat_id: int, user_id: int):
+    def disconnect(self, chat_id: int, user_id: str):
         """
         Закрывает соединение и удаляет его из списка активных подключений.
         Если в комнате больше нет пользователей, удаляет комнату.
@@ -32,7 +32,7 @@ class ConnectionManager:
             if not self.active_connections[chat_id]:
                 del self.active_connections[chat_id]
 
-    async def broadcast_typing(self, chat_id: int, sender_id: int):
+    async def broadcast_typing(self, chat_id: int, sender_id: str):
         """
         Рассылает сообщение всем пользователям в комнате.
         """
@@ -43,7 +43,7 @@ class ConnectionManager:
                 }
                 await connection.send_json(typer)
 
-    async def broadcast_message(self, message: str, chat_id: int, sender_id: int):
+    async def broadcast_message(self, message: str, chat_id: int, sender_id: str):
         """
         Рассылает сообщение всем пользователям в комнате.
         """
@@ -59,7 +59,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 @router.websocket("/{chat_id}/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: int, username: str,db: AsyncSession = Depends(get_db)):
+async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: str, username: str,db: AsyncSession = Depends(get_db)):
     chat_repo = ChatRepository(db)
     member = await chat_repo.get_member(chat_id, user_id)
     if not member:
