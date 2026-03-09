@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_db
 from src.service.message_service import add_message, get_messages_by_chat, update_message, delete_message
@@ -13,7 +13,7 @@ router = APIRouter(
 async def create_message(
     chat_id: int,
     content: str,
-    sender_id: int,
+    sender_id: str,
     db: AsyncSession = Depends(get_db)
 ):
     message = await add_message(db, chat_id, content, sender_id)
@@ -29,6 +29,7 @@ async def read_messages(
 ):
     messages = await get_messages_by_chat(db, chat_id, limit, offset)
     return messages
+
 
 @router.patch("/{message_id}/")
 async def update_message_endpoint(

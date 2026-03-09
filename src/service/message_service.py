@@ -9,7 +9,7 @@ async def add_message(
         session: AsyncSession,
         chat_id: int,
         content: str,
-        sender_id: int
+        sender_id: str
 ) -> Message:
     new_message = Message(
         chat_id=chat_id,
