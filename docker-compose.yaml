@@ -14,8 +14,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - msngr-network
     
   app:
+    container_name: message-service
     build: .
     ports:
       - "8000:8000"
@@ -27,6 +30,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./alembic/versions:/app/alembic/versions
+    networks:
+      - msngr-network
 
 volumes:
   postgres_data:
+
+networks:
+  msngr-network:
+    external: true
