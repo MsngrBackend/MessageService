@@ -25,6 +25,8 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - ./alembic/versions:/app/alembic/versions
 
 volumes:
   postgres_data:

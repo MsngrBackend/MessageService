@@ -9,8 +9,6 @@ from src.handler.chatHandler import router as chat_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Tables before:", Base.metadata.tables.keys())
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 

@@ -15,7 +15,7 @@ class ChatMembers(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    user_id: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class Message(Base):
@@ -24,7 +24,7 @@ class Message(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    sender_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sender_id: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[int] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False)
     updated_at: Mapped[int] = mapped_column(
