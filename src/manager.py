@@ -10,7 +10,7 @@ router = APIRouter()
 class ConnectionManager:
     def __init__(self):
         # Хранение активных соединений в виде {chat_id: {user_id: WebSocket}}
-        self.active_connections: Dict[int, Dict[int, WebSocket]] = {}
+        self.active_connections: Dict[int, Dict[str, WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, chat_id: int, user_id: str):
         """

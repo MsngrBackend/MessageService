@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
@@ -35,7 +35,12 @@ async def get_chat_by_id(
     user_id: str = Depends(get_current_user_id),
     service: ChatService = Depends(get_service),
 ):
-    return await service.get_chat(chat_id, user_id)
+    try:
+        return await service.get_chat(chat_id, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 @router.post("/", response_model=ChatResponse, status_code=status.HTTP_201_CREATED)
 async def create_chat(
@@ -58,7 +63,10 @@ async def add_chat_member(
     member: AddMemberRequest,
     service: ChatService = Depends(get_service),
 ):
-    return await service.add_member(chat_id, member.user_id)
+    try:
+        return await service.add_member(chat_id, member.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{chat_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_chat_member(
@@ -67,6 +75,3 @@ async def remove_chat_member(
     service: ChatService = Depends(get_service),
 ):
     return await service.remove_member(chat_id, user_id)
-
-
-    
