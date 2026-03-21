@@ -70,8 +70,27 @@ async def add_chat_member(
 
 @router.delete("/{chat_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_chat_member(
-    chat_id: int,    
-    user_id: str,
+    chat_id: int,
+    deleted_user_id: str,
+    user_id: str = Depends(get_current_user_id),
     service: ChatService = Depends(get_service),
 ):
-    return await service.remove_member(chat_id, user_id)
+    try:
+        return await service.remove_member(chat_id, deleted_user_id, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@router.delete("/{chat_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chat(
+    chat_id: int,
+    user_id: str = Depends(get_current_user_id),
+    service: ChatService = Depends(get_service),
+):
+    try:
+        return await service.delete_chat(chat_id, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
