@@ -5,12 +5,15 @@ from contextlib import asynccontextmanager
 from src.handler.message_handler import router as messages_router
 from src.manager import router as websocket_router
 from src.handler.chatHandler import router as chat_router
+from src.nats_bus import start_nats, stop_nats
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Tables before:", Base.metadata.tables.keys())
+    await start_nats()
     yield
+    await stop_nats()
     await engine.dispose()
 
 app = FastAPI(title="Messanger Service", version="1.0.0", lifespan=lifespan)

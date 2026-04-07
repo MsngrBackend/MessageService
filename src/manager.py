@@ -1,11 +1,14 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict
+from typing import Dict, Any
+
 from src.repository.chatRepo import ChatRepository
 from src.service.message_service import add_message
+from src.nats_bus import notify_chat_event, publish_user_status
 from .db import get_db
 
 router = APIRouter()
+
 
 class ConnectionManager:
     def __init__(self):
@@ -58,8 +61,27 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+
+async def dispatch_chat_event(data: dict[str, Any]) -> None:
+    """Локальная доставка события чата в WebSocket клиентам этого инстанса."""
+    chat_id = int(data["chat_id"])
+    etype = data.get("type")
+    if etype == "message":
+        await manager.broadcast_message(data["text"], chat_id, data["sender_id"])
+    elif etype == "typing":
+        await manager.broadcast_typing(chat_id, data["sender_id"])
+    elif etype == "system":
+        await manager.broadcast_message(data["text"], chat_id, data["sender_id"])
+
+
 @router.websocket("/{chat_id}/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: str, username: str,db: AsyncSession = Depends(get_db)):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    chat_id: int,
+    user_id: str,
+    username: str,
+    db: AsyncSession = Depends(get_db),
+):
     chat_repo = ChatRepository(db)
     member = await chat_repo.get_member(chat_id, user_id)
     if not member:
@@ -67,7 +89,15 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: str, u
         return
 
     await manager.connect(websocket, chat_id, user_id)
-    await manager.broadcast_message(f"{username} (ID: {user_id}) присоединился к чату.", chat_id, user_id)
+    await publish_user_status(user_id, "online")
+    await notify_chat_event(
+        chat_id,
+        {
+            "type": "system",
+            "text": f"{username} (ID: {user_id}) присоединился к чату.",
+            "sender_id": user_id,
+        },
+    )
 
     try:
         while True:
@@ -75,11 +105,25 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, user_id: str, u
 
             if data["type"] == "message":
                 await add_message(db, chat_id, data["text"], user_id)
-                await manager.broadcast_message(data["text"], chat_id, user_id)
+                await notify_chat_event(
+                    chat_id,
+                    {"type": "message", "text": data["text"], "sender_id": user_id},
+                )
 
             elif data["type"] == "typing":
-                await manager.broadcast_typing(chat_id, user_id)
+                await notify_chat_event(
+                    chat_id,
+                    {"type": "typing", "sender_id": user_id},
+                )
 
     except WebSocketDisconnect:
         manager.disconnect(chat_id, user_id)
-        await manager.broadcast_message(f"{username} (ID: {user_id}) покинул чат.", chat_id, user_id)
+        await publish_user_status(user_id, "offline")
+        await notify_chat_event(
+            chat_id,
+            {
+                "type": "system",
+                "text": f"{username} (ID: {user_id}) покинул чат.",
+                "sender_id": user_id,
+            },
+        )

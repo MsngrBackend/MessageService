@@ -5,3 +5,4 @@ asyncpg
 pydantic
 alembic
 dotenv
+nats-py

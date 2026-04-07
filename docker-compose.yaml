@@ -1,4 +1,14 @@
 services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: msngr_nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+    command: ["-m", "8222"]
+    networks:
+      - msngr-network
+
   postgres:
     image: postgres:16-alpine
     container_name: messaging_postgres
@@ -24,7 +34,11 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
     depends_on:
+      nats:
+        condition: service_started
       postgres:
         condition: service_healthy
     restart: unless-stopped
