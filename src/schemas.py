@@ -1,4 +1,8 @@
+from enum import Enum
+from typing import Literal
+
 from pydantic import BaseModel
+
 
 class CreateChatRequest(BaseModel):
     name: str
@@ -10,6 +14,7 @@ class RenameChatRequest(BaseModel):
 
 class AddMemberRequest(BaseModel):
     user_id: str
+
 
 class ChatResponse(BaseModel):
     id: int
@@ -24,3 +29,21 @@ class MemberResponse(BaseModel):
     user_id: str
 
     model_config = {"from_attributes": True}
+
+
+class EventTypes(str, Enum):
+    SYSTEM = "system"
+    MESSAGE = "message"
+    TYPING = "typing"
+
+
+class MessageEvent(BaseModel):
+    type: Literal[EventTypes.MESSAGE]
+    text: str
+
+
+class TypingEvent(BaseModel):
+    type: Literal[EventTypes.TYPING]
+
+
+IncomingEvent = MessageEvent | TypingEvent
