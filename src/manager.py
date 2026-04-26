@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from src.schemas import IncomingEvent, EventTypes
 from src.repository.chatRepo import ChatRepository
-from src.service.message_service import add_message
+from src.service.message_service import MessageService
 from src.nats_bus import notify_chat_event, publish_user_status
 from .db import get_db
 
@@ -16,6 +16,7 @@ class ConnectionManager:
     def __init__(self):
         # Хранение активных соединений в виде {chat_id: {user_id: WebSocket}}
         self.active_connections: Dict[int, Dict[str, WebSocket]] = {}
+        self.message_service = MessageService()
 
     async def connect(self, websocket: WebSocket, chat_id: int, user_id: str):
         """
@@ -111,7 +112,7 @@ async def websocket_endpoint(
                 continue
 
             if event.type == EventTypes.MESSAGE:
-                await add_message(db, chat_id, event.text, user_id)
+                await manager.message_service.add_message(db, chat_id, event.text, user_id)
                 await notify_chat_event(
                     chat_id,
                     {"type": EventTypes.MESSAGE,
