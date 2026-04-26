@@ -1,4 +1,4 @@
-from src.db import engine, Base
+from src.db import engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -20,7 +20,6 @@ class Application:
 
     @asynccontextmanager
     async def _lifespan(self, _: FastAPI):
-        print("Tables before:", Base.metadata.tables.keys())
         await start_nats()
         yield
         await stop_nats()
@@ -39,10 +38,10 @@ class Application:
         self.app.include_router(messages_router)
         self.app.include_router(websocket_router)
         self.app.include_router(chat_router)
-        self.app.add_api_route("/health", self._health)
 
-    async def _health():
-        return {"status": "ok"}
+        @self.app.get("/health")
+        async def health():
+            return {"status": "ok"}
 
 
 app = Application().app
