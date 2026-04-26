@@ -2,21 +2,14 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any
-from enum import Enum
 
-from src.schemas import IncomingEvent
+from src.schemas import IncomingEvent, EventTypes
 from src.repository.chatRepo import ChatRepository
 from src.service.message_service import add_message
 from src.nats_bus import notify_chat_event, publish_user_status
 from .db import get_db
 
 router = APIRouter()
-
-
-class EventTypes(str, Enum):
-    SYSTEM = "system"
-    MESSAGE = "message"
-    TYPING = "typing"
 
 
 class ConnectionManager:
